@@ -1,0 +1,7 @@
+*.env
+node_modules/
+dist/
+build/
+.next/
+/prisma/migrations/
+docker-compose.override.yml
