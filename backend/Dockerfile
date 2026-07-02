@@ -27,7 +27,18 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Expose port 4000 to Render's load balancer
 EXPOSE 4000
 
-# Force NestJS to re-compile your updated main.ts file inside the container, then run migrations and start
-CMD sh -c "npm run build && npx prisma migrate deploy && npm run start:prod"
+# Copy over only the production-ready assets from the builder stage
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+
+# RUN MIGRATIONS AND RUN THE PRE-COMPILED JS FROM DIST
+CMD sh -c "npx prisma migrate deploy && node dist/main"
