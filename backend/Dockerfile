@@ -3,8 +3,8 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install openssl (required for Prisma engines)
-RUN apk add --no-cache openssl
+# Install native compilation requirements for Alpine
+RUN apk add --no-cache openssl libc6-compat
 
 # Copy dependency structures
 COPY package*.json ./
@@ -16,8 +16,8 @@ RUN npm ci
 # Copy the rest of the application source code
 COPY . .
 
-# Generate Prisma Client and compile NestJS TypeScript to JavaScript
-RUN npm run prisma:generate
+# Generate Prisma Client (targeting musl explicitly) and compile NestJS
+RUN npx prisma generate --binary-targets "native" "linux-musl-openssl-3.0.x"
 RUN npm run build
 
 
@@ -26,8 +26,8 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Re-install openssl in the clean runtime environment for Prisma engine binaries
-RUN apk add --no-cache openssl
+# Ensure native binaries can resolve libraries in runtime container
+RUN apk add --no-cache openssl libc6-compat
 
 # Expose port 4000 to Render's load balancer
 EXPOSE 4000
