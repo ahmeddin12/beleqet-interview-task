@@ -3,21 +3,23 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install native compilation requirements for Alpine
+# Install native compilation requirements for Alpine Linux
 RUN apk add --no-cache openssl libc6-compat
 
-# Copy dependency structures
+# Copy dependency mappings
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Clean install all dependencies
+# Clean install all dependencies (both dev and prod)
 RUN npm ci
 
-# Copy the rest of the application source code
+# Copy the rest of your application source code
 COPY . .
 
-# Generate Prisma Client (targeting musl explicitly) and compile NestJS
-RUN npx prisma generate --binary-targets "native" "linux-musl-openssl-3.0.x"
+# Generate Prisma Client (reads binaryTargets from schema.prisma)
+RUN npx prisma generate
+
+# Compile NestJS TypeScript source to raw production JavaScript
 RUN npm run build
 
 
@@ -26,7 +28,7 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Ensure native binaries can resolve libraries in runtime container
+# Ensure native OpenSSL binaries can resolve libraries in the runtime environment
 RUN apk add --no-cache openssl libc6-compat
 
 # Expose port 4000 to Render's load balancer
@@ -38,6 +40,5 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
-# Execute migrations over the cloud network, then boot the raw node app
-# Override DATABASE_URL with the DIRECT_URL just for the migration script, then boot Node safely
+# Execute migrations safely over the direct URL, then boot the raw application
 CMD sh -c "DATABASE_URL=\$DIRECT_URL npx prisma migrate deploy && node dist/main"
