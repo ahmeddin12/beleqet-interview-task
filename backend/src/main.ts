@@ -12,7 +12,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
 
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('PORT', 4000);
+
   const nodeEnv = configService.get<string>('NODE_ENV', 'development');
 
   // ── Security ──────────────────────────────────────────────────────────────
@@ -29,9 +29,9 @@ async function bootstrap() {
   // ── Validation ────────────────────────────────────────────────────────────
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,          // strip unknown props
+      whitelist: true, // strip unknown props
       forbidNonWhitelisted: true,
-      transform: true,          // auto-transform to DTO types
+      transform: true, // auto-transform to DTO types
       transformOptions: { enableImplicitConversion: true },
     }),
   );
@@ -65,6 +65,8 @@ async function bootstrap() {
       .addTag('analytics', 'Platform analytics')
       .build();
 
+    const port = process.env.PORT || 4000;
+
     const document = SwaggerModule.createDocument(app, swaggerConfig);
     SwaggerModule.setup('api/docs', app, document);
     logger.log(`Swagger UI → http://localhost:${port}/api/docs`);
@@ -73,9 +75,9 @@ async function bootstrap() {
   // ── Graceful shutdown ─────────────────────────────────────────────────────
   app.enableShutdownHooks();
 
-  await app.listen(port);
-  logger.log(`🚀 Beleqet API running on http://localhost:${port}/api/v1`);
-  logger.log(`   Environment: ${nodeEnv}`);
+  const port = process.env.PORT || 4000;
+  await app.listen(port, '0.0.0.0');
+  console.log(`Application is running on: http://localhost:${port}`);
 }
 
 bootstrap().catch((err) => {
