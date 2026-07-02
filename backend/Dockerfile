@@ -29,4 +29,5 @@ COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 4000
 
-CMD ["sh", "-c", "npx prisma migrate deploy && npm run start:prod"]
+# Force NestJS to re-compile your updated main.ts file inside the container, then run migrations and start
+CMD sh -c "npm run build && npx prisma migrate deploy && npm run start:prod"
