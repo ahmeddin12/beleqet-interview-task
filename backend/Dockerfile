@@ -41,4 +41,4 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
 # Execute migrations safely over the direct URL, then boot the raw application
-CMD sh -c "DATABASE_URL=\$DIRECT_URL npx prisma migrate deploy && node dist/main"
+CMD sh -c "DATABASE_URL=\$DIRECT_URL npx prisma migrate deploy && npm run prisma:seed && node dist/main"
