@@ -39,4 +39,5 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
 # Execute migrations over the cloud network, then boot the raw node app
-CMD sh -c "npx prisma migrate deploy && node dist/main"
+# Override DATABASE_URL with the DIRECT_URL just for the migration script, then boot Node safely
+CMD sh -c "DATABASE_URL=\$DIRECT_URL npx prisma migrate deploy && node dist/main"
