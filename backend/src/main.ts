@@ -12,8 +12,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
 
   const configService = app.get(ConfigService);
-
   const nodeEnv = configService.get<string>('NODE_ENV', 'development');
+  const port = process.env.PORT || 4000;
 
   // ── Security ──────────────────────────────────────────────────────────────
   app.use(helmet());
@@ -29,21 +29,21 @@ async function bootstrap() {
   // ── Validation ────────────────────────────────────────────────────────────
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // strip unknown props
+      whitelist: true,
       forbidNonWhitelisted: true,
-      transform: true, // auto-transform to DTO types
+      transform: true,
       transformOptions: { enableImplicitConversion: true },
     }),
   );
 
-  // ── Serialization ─────────────────────────────────────────────────────────
-  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
+  // ── Global Interceptors (Fixed: Combined into a single array) ──────────────
+  app.useGlobalInterceptors(
+    new ClassSerializerInterceptor(app.get(Reflector)),
+    new LoggingInterceptor(),
+  );
 
   // ── Exception filter ──────────────────────────────────────────────────────
   app.useGlobalFilters(new HttpExceptionFilter());
-
-  // ── Logging interceptor ───────────────────────────────────────────────────
-  app.useGlobalInterceptors(new LoggingInterceptor());
 
   // ── Swagger (disabled in production) ──────────────────────────────────────
   if (nodeEnv !== 'production') {
@@ -65,8 +65,6 @@ async function bootstrap() {
       .addTag('analytics', 'Platform analytics')
       .build();
 
-    const port = process.env.PORT || 4000;
-
     const document = SwaggerModule.createDocument(app, swaggerConfig);
     SwaggerModule.setup('api/docs', app, document);
     logger.log(`Swagger UI → http://localhost:${port}/api/docs`);
@@ -75,9 +73,9 @@ async function bootstrap() {
   // ── Graceful shutdown ─────────────────────────────────────────────────────
   app.enableShutdownHooks();
 
-  const port = process.env.PORT || 4000;
+  // ── Start Server ──────────────────────────────────────────────────────────
   await app.listen(port, '0.0.0.0');
-  console.log(`Application is running on: http://localhost:${port}`);
+  console.log(`Application is running on port: ${port}`);
 }
 
 bootstrap().catch((err) => {
